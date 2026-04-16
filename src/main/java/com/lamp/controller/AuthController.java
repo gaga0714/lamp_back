@@ -5,6 +5,7 @@ import com.lamp.dto.LoginDTO;
 import com.lamp.dto.PasswordDTO;
 import com.lamp.dto.RegisterDTO;
 import com.lamp.entity.User;
+import com.lamp.exception.BusinessException;
 import com.lamp.security.UserContext;
 import com.lamp.service.UserService;
 import com.lamp.util.JwtUtil;
@@ -48,14 +49,22 @@ public class AuthController {
 
     @GetMapping("/user")
     public Result<Map<String, Object>> getUser() {
-        Long userId = UserContext.getUserId();
+        Long userId = requireLogin();
         User user = userService.getById(userId);
         return Result.ok(UserVO.from(user).toMap());
     }
 
     @PutMapping("/password")
     public Result<Void> updatePassword(@Valid @RequestBody PasswordDTO dto) {
-        userService.updatePassword(UserContext.getUserId(), dto.getOldPassword(), dto.getNewPassword());
+        userService.updatePassword(requireLogin(), dto.getOldPassword(), dto.getNewPassword());
         return Result.ok();
+    }
+
+    private Long requireLogin() {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new BusinessException(401, "未登录或登录已过期");
+        }
+        return userId;
     }
 }

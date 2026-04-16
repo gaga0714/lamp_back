@@ -16,6 +16,8 @@ public class Lab {
     private String location;
     @Column(columnDefinition = "text")
     private String description;
+    @Column(length = 255)
+    private String equipmentInfo;
     private Integer capacity;
     /** available-可预约 maintenance-维护中 */
     @Column(nullable = false, length = 20)

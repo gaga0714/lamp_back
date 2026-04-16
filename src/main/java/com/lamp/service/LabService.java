@@ -14,11 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class LabService {
 
-    private static final List<String> SLOTS = Arrays.asList("08:00-10:00", "10:00-12:00", "14:00-16:00", "16:00-18:00");
+    private static final List<String> SLOTS = Arrays.asList(
+            "08:00-10:00",
+            "10:00-12:00",
+            "14:00-16:00",
+            "16:00-18:00",
+            "18:00-20:00",
+            "20:00-22:00"
+    );
 
     private final LabRepository labRepository;
     private final LabBookingRepository labBookingRepository;
@@ -28,8 +36,15 @@ public class LabService {
         this.labBookingRepository = labBookingRepository;
     }
 
-    public List<Lab> listLabs(String keyword) {
-        return labRepository.listByKeyword(keyword);
+    public List<Lab> listLabs(String name, String location, String equipment, Integer minCapacity,
+                              boolean onlyAvailable, LocalDate date, String slot) {
+        return labRepository.findAll().stream()
+                .filter(lab -> isTextMatch(lab.getName(), name))
+                .filter(lab -> isTextMatch(lab.getLocation(), location))
+                .filter(lab -> isTextMatch(lab.getEquipmentInfo(), equipment))
+                .filter(lab -> minCapacity == null || (lab.getCapacity() != null && lab.getCapacity() >= minCapacity))
+                .filter(lab -> !onlyAvailable || isLabAvailable(lab, date, slot))
+                .collect(Collectors.toList());
     }
 
     public Lab getDetail(Long id) {
@@ -39,6 +54,14 @@ public class LabService {
     public List<String> getSlots(Long labId, LocalDate date) {
         labRepository.findById(labId).orElseThrow(() -> new BusinessException("实验室不存在"));
         return SLOTS;
+    }
+
+    public boolean isSlotAvailable(Long labId, LocalDate date, String slot) {
+        if (date == null || slot == null || slot.trim().isEmpty()) {
+            return false;
+        }
+        Lab lab = getDetail(labId);
+        return isLabAvailable(lab, date, slot);
     }
 
     @Transactional
@@ -102,7 +125,8 @@ public class LabService {
     }
 
     @Transactional
-    public Lab saveLab(Long id, String name, String location, String description, Integer capacity, String status) {
+    public Lab saveLab(Long id, String name, String location, String description,
+                       String equipmentInfo, Integer capacity, String status) {
         Lab lab;
         if (id != null && id > 0) {
             lab = labRepository.findById(id).orElseThrow(() -> new BusinessException("实验室不存在"));
@@ -112,6 +136,7 @@ public class LabService {
         if (name != null) lab.setName(name);
         if (location != null) lab.setLocation(location);
         if (description != null) lab.setDescription(description);
+        if (equipmentInfo != null) lab.setEquipmentInfo(equipmentInfo);
         if (capacity != null) lab.setCapacity(capacity);
         if (status != null) lab.setStatus(status);
         return labRepository.save(lab);
@@ -120,5 +145,23 @@ public class LabService {
     @Transactional
     public void deleteLab(Long id) {
         labRepository.deleteById(id);
+    }
+
+    private boolean isTextMatch(String source, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return true;
+        }
+        return source != null && source.contains(keyword.trim());
+    }
+
+    private boolean isLabAvailable(Lab lab, LocalDate date, String slot) {
+        if (!"available".equals(lab.getStatus())) {
+            return false;
+        }
+        if (date == null || slot == null || slot.trim().isEmpty()) {
+            return true;
+        }
+        return !labBookingRepository.existsByLabIdAndDateAndSlotAndStatusIn(
+                lab.getId(), date, slot, Arrays.asList("pending", "approved"));
     }
 }
