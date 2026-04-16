@@ -191,6 +191,9 @@ public class LabController {
         m.put("labId", b.getLabId());
         Lab lab = labService.getDetail(b.getLabId());
         m.put("labName", lab.getName());
+        m.put("location", lab.getLocation());
+        m.put("capacity", lab.getCapacity());
+        m.put("equipmentInfo", lab.getEquipmentInfo());
         m.put("date", b.getDate() != null ? b.getDate().toString() : null);
         m.put("slot", b.getSlot());
         m.put("purpose", b.getPurpose());
