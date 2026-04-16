@@ -123,10 +123,11 @@ public class LabController {
     public Result<Map<String, Object>> saveLab(@RequestBody Map<String, Object> body) {
         Long id = body.get("id") instanceof Number ? ((Number) body.get("id")).longValue() : null;
         String name = (String) body.get("name");
+        String location = (String) body.get("location");
         String description = (String) body.get("description");
         Integer capacity = body.get("capacity") != null ? ((Number) body.get("capacity")).intValue() : null;
         String status = (String) body.get("status");
-        Lab lab = labService.saveLab(id, name, description, capacity, status);
+        Lab lab = labService.saveLab(id, name, location, description, capacity, status);
         return Result.ok(labToMap(lab));
     }
 
@@ -145,6 +146,7 @@ public class LabController {
         Map<String, Object> m = new HashMap<>();
         m.put("id", l.getId());
         m.put("name", l.getName());
+        m.put("location", l.getLocation());
         m.put("description", l.getDescription());
         m.put("capacity", l.getCapacity());
         m.put("status", l.getStatus());

@@ -102,7 +102,7 @@ public class LabService {
     }
 
     @Transactional
-    public Lab saveLab(Long id, String name, String description, Integer capacity, String status) {
+    public Lab saveLab(Long id, String name, String location, String description, Integer capacity, String status) {
         Lab lab;
         if (id != null && id > 0) {
             lab = labRepository.findById(id).orElseThrow(() -> new BusinessException("实验室不存在"));
@@ -110,6 +110,7 @@ public class LabService {
             lab = new Lab();
         }
         if (name != null) lab.setName(name);
+        if (location != null) lab.setLocation(location);
         if (description != null) lab.setDescription(description);
         if (capacity != null) lab.setCapacity(capacity);
         if (status != null) lab.setStatus(status);
