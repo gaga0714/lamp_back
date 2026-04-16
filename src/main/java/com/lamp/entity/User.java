@@ -22,7 +22,7 @@ public class User {
     private String phone;
     @Column(length = 64)
     private String email;
-    /** student, teacher, labAdmin, admin */
+    /** student, teacher, admin */
     @Column(nullable = false, length = 20)
     private String role;
     /** 1 正常 0 禁用 */

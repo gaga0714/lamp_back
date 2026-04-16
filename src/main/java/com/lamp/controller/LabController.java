@@ -106,6 +106,7 @@ public class LabController {
     public Result<Map<String, Object>> approveList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
+        requireAdmin();
         Page<LabBooking> pg = labService.getApproveList(page, pageSize);
         List<Map<String, Object>> list = pg.getContent().stream().map(b -> bookingToMap(b, false)).collect(Collectors.toList());
         Map<String, Object> data = new HashMap<>();
@@ -116,6 +117,7 @@ public class LabController {
 
     @PutMapping("/booking/{id}/approve")
     public Result<Map<String, Object>> approveBooking(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        requireAdmin();
         Boolean approved = body.get("approved") instanceof Boolean ? (Boolean) body.get("approved") : Boolean.TRUE;
         String remark = body.get("remark") != null ? body.get("remark").toString() : "";
         LabBooking booking = labService.approveBooking(id, approved, remark);
@@ -126,6 +128,7 @@ public class LabController {
     public Result<Map<String, Object>> manageList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
+        requireAdmin();
         Page<Lab> pg = labService.getManageList(page, pageSize);
         List<Map<String, Object>> list = pg.getContent().stream().map(this::labToMap).collect(Collectors.toList());
         Map<String, Object> data = new HashMap<>();
@@ -136,6 +139,7 @@ public class LabController {
 
     @PostMapping("/manage")
     public Result<Map<String, Object>> saveLab(@RequestBody Map<String, Object> body) {
+        requireAdmin();
         Long id = body.get("id") instanceof Number ? ((Number) body.get("id")).longValue() : null;
         String name = (String) body.get("name");
         String location = (String) body.get("location");
@@ -154,6 +158,7 @@ public class LabController {
 
     @DeleteMapping("/manage/{id}")
     public Result<Void> deleteLab(@PathVariable Long id) {
+        requireAdmin();
         labService.deleteLab(id);
         return Result.ok();
     }
@@ -211,5 +216,12 @@ public class LabController {
             throw new BusinessException(401, "未登录或登录已过期");
         }
         return userId;
+    }
+
+    private void requireAdmin() {
+        requireLogin();
+        if (!"admin".equals(UserContext.getRole())) {
+            throw new BusinessException(403, "无权限");
+        }
     }
 }
