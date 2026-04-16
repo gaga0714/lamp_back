@@ -150,7 +150,6 @@ public class LabController {
         m.put("description", l.getDescription());
         m.put("capacity", l.getCapacity());
         m.put("status", l.getStatus());
-        m.put("openTime", l.getOpenTime());
         return m;
     }
 

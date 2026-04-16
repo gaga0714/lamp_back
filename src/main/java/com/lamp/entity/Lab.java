@@ -3,8 +3,6 @@ package com.lamp.entity;
 import javax.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 @Entity
 @Table(name = "lab")
@@ -22,18 +20,4 @@ public class Lab {
     /** available-可预约 maintenance-维护中 */
     @Column(nullable = false, length = 20)
     private String status = "available";
-    @Column(length = 64)
-    private String openTime;
-    private LocalDateTime createTime;
-    private LocalDateTime updateTime;
-
-    @PrePersist
-    public void prePersist() {
-        createTime = updateTime = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updateTime = LocalDateTime.now();
-    }
 }
