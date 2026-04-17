@@ -95,6 +95,13 @@ public class AttendanceController {
         return Result.ok(data);
     }
 
+    @PutMapping("/leave/{id}/cancel")
+    public Result<Void> cancelLeave(@PathVariable Long id) {
+        Long userId = requireStudent();
+        attendanceService.cancelLeave(id, userId);
+        return Result.ok();
+    }
+
     @GetMapping("/manage")
     public Result<Map<String, Object>> manageList(
             @RequestParam(defaultValue = "1") int page,

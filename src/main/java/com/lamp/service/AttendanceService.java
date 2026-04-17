@@ -114,6 +114,18 @@ public class AttendanceService {
     }
 
     @Transactional
+    public void cancelLeave(Long id, Long userId) {
+        LeaveApply apply = leaveApplyRepository.findById(id).orElseThrow(() -> new BusinessException("请假记录不存在"));
+        if (!apply.getUserId().equals(userId)) {
+            throw new BusinessException("无权操作");
+        }
+        if (!"待审批".equals(apply.getStatus())) {
+            throw new BusinessException("仅待审批的请假可撤回");
+        }
+        leaveApplyRepository.delete(apply);
+    }
+
+    @Transactional
     public LeaveApply approveLeave(Long id, boolean approved, String remark) {
         LeaveApply apply = leaveApplyRepository.findById(id).orElseThrow(() -> new BusinessException("请假记录不存在"));
         User applicant = userRepository.findById(apply.getUserId()).orElseThrow(() -> new BusinessException("用户不存在"));
