@@ -1,18 +1,18 @@
 package com.lamp.controller;
 
 import com.lamp.common.Result;
-import com.lamp.entity.AttendanceRecord;
+import com.lamp.entity.Course;
 import com.lamp.entity.LeaveApply;
 import com.lamp.entity.User;
 import com.lamp.exception.BusinessException;
 import com.lamp.security.UserContext;
 import com.lamp.service.AttendanceService;
+import com.lamp.service.CourseService;
 import com.lamp.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -24,27 +24,24 @@ import java.util.stream.Collectors;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+    private final CourseService courseService;
     private final UserService userService;
 
-    public AttendanceController(AttendanceService attendanceService, UserService userService) {
+    public AttendanceController(AttendanceService attendanceService, CourseService courseService, UserService userService) {
         this.attendanceService = attendanceService;
+        this.courseService = courseService;
         this.userService = userService;
     }
 
     @PostMapping("/check-in")
-    public Result<Map<String, Object>> checkIn(@RequestBody Map<String, String> body) {
+    public Result<Map<String, Object>> checkIn(@RequestBody Map<String, Object> body) {
         Long userId = requireStudent();
-        String type = body.get("type");
-        if (type == null || (!"in".equals(type) && !"out".equals(type))) {
-            return Result.fail("type 为 in 或 out");
+        Long courseId = toLong(body.get("courseId"));
+        String courseDateStr = body.get("courseDate") == null ? null : body.get("courseDate").toString();
+        if (courseId == null || courseDateStr == null || courseDateStr.trim().isEmpty()) {
+            return Result.fail("请先选择课程");
         }
-        AttendanceRecord record = attendanceService.checkIn(userId, type);
-        Map<String, Object> data = new HashMap<>();
-        data.put("type", type);
-        data.put("date", record.getDate().toString());
-        data.put("checkInTime", record.getCheckInTime() != null ? record.getCheckInTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
-        data.put("checkOutTime", record.getCheckOutTime() != null ? record.getCheckOutTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
-        return Result.ok(data);
+        return Result.ok(courseService.checkIn(userId, courseId, LocalDate.parse(courseDateStr)));
     }
 
     @GetMapping("/records")
@@ -56,27 +53,20 @@ public class AttendanceController {
         Long userId = requireStudent();
         LocalDate start = startDate != null && !startDate.isEmpty() ? LocalDate.parse(startDate) : null;
         LocalDate end = endDate != null && !endDate.isEmpty() ? LocalDate.parse(endDate) : null;
-        Page<AttendanceRecord> pg = attendanceService.getMyRecords(userId, start, end, page, pageSize);
-        List<Map<String, Object>> list = pg.getContent().stream().map(this::recordToMap).collect(Collectors.toList());
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
-        data.put("total", pg.getTotalElements());
-        return Result.ok(data);
+        return Result.ok(courseService.getStudentAttendance(userId, start, end, page, pageSize));
     }
 
     @PostMapping("/leave")
     public Result<Map<String, Object>> applyLeave(@RequestBody Map<String, Object> body) {
         Long userId = requireStudent();
         String type = (String) body.get("type");
-        String startTimeStr = (String) body.get("startTime");
-        String endTimeStr = (String) body.get("endTime");
+        Long courseId = toLong(body.get("courseId"));
+        String courseDateStr = body.get("courseDate") == null ? null : body.get("courseDate").toString();
         String reason = (String) body.get("reason");
-        if (type == null || startTimeStr == null || endTimeStr == null || reason == null) {
+        if (type == null || courseId == null || courseDateStr == null || reason == null) {
             return Result.fail("请填写完整");
         }
-        LocalDateTime startTime = LocalDateTime.parse(startTimeStr.replace(" ", "T"));
-        LocalDateTime endTime = LocalDateTime.parse(endTimeStr.replace(" ", "T"));
-        LeaveApply apply = attendanceService.applyLeave(userId, type, startTime, endTime, reason);
+        LeaveApply apply = attendanceService.applyLeave(userId, courseId, LocalDate.parse(courseDateStr), type, reason);
         Map<String, Object> data = new HashMap<>();
         data.put("id", apply.getId());
         return Result.ok(data);
@@ -110,26 +100,15 @@ public class AttendanceController {
             @RequestParam(required = false) String keyword) {
         requireAdmin();
         LocalDate d = date != null && !date.isEmpty() ? LocalDate.parse(date) : null;
-        Page<AttendanceRecord> pg = attendanceService.getManageList(d, keyword, page, pageSize);
-        List<Map<String, Object>> list = pg.getContent().stream().map(rec -> {
-            Map<String, Object> m = recordToMap(rec);
-            User user = userService.getById(rec.getUserId());
-            m.put("username", user.getUsername());
-            m.put("name", user.getName());
-            return m;
-        }).collect(Collectors.toList());
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
-        data.put("total", pg.getTotalElements());
-        return Result.ok(data);
+        return Result.ok(courseService.getAdminAttendance(keyword, d, page, pageSize));
     }
 
     @GetMapping("/leave/pending")
     public Result<Map<String, Object>> pendingLeaveList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
-        requireTeacher();
-        Page<LeaveApply> pg = attendanceService.getLeaveManageList(page, pageSize);
+        Long teacherId = requireTeacher();
+        Page<LeaveApply> pg = attendanceService.getLeaveManageList(teacherId, page, pageSize);
         List<Map<String, Object>> list = pg.getContent().stream().map(apply -> {
             Map<String, Object> m = leaveToMap(apply);
             User user = userService.getById(apply.getUserId());
@@ -145,25 +124,15 @@ public class AttendanceController {
 
     @PutMapping("/leave/{id}/approve")
     public Result<Map<String, Object>> approveLeave(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        requireTeacher();
+        Long teacherId = requireTeacher();
         Boolean approved = body.get("approved") instanceof Boolean ? (Boolean) body.get("approved") : Boolean.TRUE;
         String remark = body.get("remark") != null ? body.get("remark").toString() : "";
-        LeaveApply apply = attendanceService.approveLeave(id, approved, remark);
+        LeaveApply apply = attendanceService.approveLeave(id, teacherId, approved, remark);
         Map<String, Object> data = leaveToMap(apply);
         User user = userService.getById(apply.getUserId());
         data.put("username", user.getUsername());
         data.put("name", user.getName());
         return Result.ok(data);
-    }
-
-    private Map<String, Object> recordToMap(AttendanceRecord r) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("id", r.getId());
-        m.put("date", r.getDate() != null ? r.getDate().toString() : null);
-        m.put("checkInTime", r.getCheckInTime() != null ? r.getCheckInTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
-        m.put("checkOutTime", r.getCheckOutTime() != null ? r.getCheckOutTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
-        m.put("status", r.getStatus());
-        return m;
     }
 
     private Map<String, Object> leaveToMap(LeaveApply l) {
@@ -176,6 +145,17 @@ public class AttendanceController {
         m.put("status", l.getStatus());
         m.put("approveRemark", l.getApproveRemark());
         m.put("createTime", l.getCreateTime() != null ? l.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+        m.put("courseId", l.getCourseId());
+        m.put("courseDate", l.getCourseDate() != null ? l.getCourseDate().toString() : null);
+        if (l.getCourseId() != null) {
+            Course course = courseService.getCourse(l.getCourseId());
+            User teacher = userService.getById(course.getTeacherId());
+            m.put("courseCode", course.getCourseCode());
+            m.put("courseName", course.getCourseName());
+            m.put("courseTime", course.getStartTime() + "-" + course.getEndTime());
+            m.put("teacherName", teacher.getName());
+            m.put("location", course.getLocation());
+        }
         return m;
     }
 
@@ -202,11 +182,26 @@ public class AttendanceController {
         return requireRole("student");
     }
 
-    private void requireTeacher() {
+    private Long requireTeacher() {
         requireRole("teacher");
+        return requireLogin();
     }
 
     private void requireAdmin() {
         requireRole("admin");
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (Exception ex) {
+            return null;
+        }
     }
 }
