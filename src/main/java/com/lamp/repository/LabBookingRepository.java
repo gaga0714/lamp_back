@@ -17,4 +17,12 @@ public interface LabBookingRepository extends JpaRepository<LabBooking, Long> {
     Page<LabBooking> findByUserIdOrderByCreateTimeDesc(Long userId, Pageable pageable);
 
     Page<LabBooking> findByStatusOrderByCreateTimeDesc(String status, Pageable pageable);
+
+    long countByUserId(Long userId);
+
+    long countByUserIdAndStatus(Long userId, String status);
+
+    long countByUserIdAndDateBetween(Long userId, LocalDate start, LocalDate end);
+
+    long countByStatus(String status);
 }

@@ -1,4 +1,5 @@
 D:\bishe\lamp_back\src\main\java\com\lamp\repository\AttendanceRecordRepository.java
+D:\bishe\lamp_back\src\main\java\com\lamp\service\DashboardService.java
 D:\bishe\lamp_back\src\main\java\com\lamp\repository\LabRepository.java
 D:\bishe\lamp_back\src\main\java\com\lamp\service\LabService.java
 D:\bishe\lamp_back\src\main\java\com\lamp\config\JwtProperties.java
@@ -22,6 +23,7 @@ D:\bishe\lamp_back\src\main\java\com\lamp\security\UserContext.java
 D:\bishe\lamp_back\src\main\java\com\lamp\controller\ResultAdvice.java
 D:\bishe\lamp_back\src\main\java\com\lamp\config\FilterConfig.java
 D:\bishe\lamp_back\src\main\java\com\lamp\dto\LoginDTO.java
+D:\bishe\lamp_back\src\main\java\com\lamp\controller\DashboardController.java
 D:\bishe\lamp_back\src\main\java\com\lamp\controller\AdminUserController.java
 D:\bishe\lamp_back\src\main\java\com\lamp\entity\LeaveApply.java
 D:\bishe\lamp_back\src\main\java\com\lamp\util\JwtUtil.java

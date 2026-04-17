@@ -75,7 +75,7 @@ public class LabController {
             return Result.fail("请填写完整");
         }
         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
-        Long userId = requireLogin();
+        Long userId = requireBookingUser();
         LabBooking booking = labService.createBooking(userId, labId, date, slot, purpose);
         Map<String, Object> data = new HashMap<>();
         data.put("id", booking.getId());
@@ -86,7 +86,7 @@ public class LabController {
     public Result<Map<String, Object>> myBookings(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
-        Long userId = requireLogin();
+        Long userId = requireBookingUser();
         Page<LabBooking> pg = labService.getMyBookings(userId, page, pageSize);
         List<Map<String, Object>> list = pg.getContent().stream().map(b -> bookingToMap(b, true)).collect(Collectors.toList());
         Map<String, Object> data = new HashMap<>();
@@ -97,7 +97,7 @@ public class LabController {
 
     @PutMapping("/booking/{id}/cancel")
     public Result<Void> cancelBooking(@PathVariable Long id) {
-        Long userId = requireLogin();
+        Long userId = requireBookingUser();
         labService.cancelBooking(id, userId);
         return Result.ok();
     }
@@ -223,5 +223,14 @@ public class LabController {
         if (!"admin".equals(UserContext.getRole())) {
             throw new BusinessException(403, "无权限");
         }
+    }
+
+    private Long requireBookingUser() {
+        Long userId = requireLogin();
+        String role = UserContext.getRole();
+        if (!"student".equals(role) && !"teacher".equals(role)) {
+            throw new BusinessException(403, "无权限");
+        }
+        return userId;
     }
 }
