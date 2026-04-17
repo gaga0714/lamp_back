@@ -2,6 +2,7 @@ package com.lamp.service;
 
 import com.lamp.entity.AttendanceRecord;
 import com.lamp.entity.LeaveApply;
+import com.lamp.entity.User;
 import com.lamp.exception.BusinessException;
 import com.lamp.repository.AttendanceRecordRepository;
 import com.lamp.repository.LeaveApplyRepository;
@@ -115,6 +116,10 @@ public class AttendanceService {
     @Transactional
     public LeaveApply approveLeave(Long id, boolean approved, String remark) {
         LeaveApply apply = leaveApplyRepository.findById(id).orElseThrow(() -> new BusinessException("请假记录不存在"));
+        User applicant = userRepository.findById(apply.getUserId()).orElseThrow(() -> new BusinessException("用户不存在"));
+        if (!"student".equals(applicant.getRole())) {
+            throw new BusinessException("仅可审批学生请假申请");
+        }
         if (!"待审批".equals(apply.getStatus())) {
             throw new BusinessException("该申请已处理");
         }
