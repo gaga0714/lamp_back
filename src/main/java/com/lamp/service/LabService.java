@@ -6,12 +6,14 @@ import com.lamp.exception.BusinessException;
 import com.lamp.repository.LabBookingRepository;
 import com.lamp.repository.LabRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,15 +38,21 @@ public class LabService {
         this.labBookingRepository = labBookingRepository;
     }
 
-    public List<Lab> listLabs(String name, String location, String equipment, Integer minCapacity,
-                              boolean onlyAvailable, LocalDate date, String slot) {
-        return labRepository.findAll().stream()
+    public Page<Lab> listLabs(String name, String location, String equipment, Integer minCapacity,
+                              boolean onlyAvailable, LocalDate date, String slot, int page, int pageSize) {
+        List<Lab> filtered = labRepository.findAll().stream()
                 .filter(lab -> isTextMatch(lab.getName(), name))
                 .filter(lab -> isTextMatch(lab.getLocation(), location))
                 .filter(lab -> isTextMatch(lab.getEquipmentInfo(), equipment))
                 .filter(lab -> minCapacity == null || (lab.getCapacity() != null && lab.getCapacity() >= minCapacity))
                 .filter(lab -> !onlyAvailable || isLabAvailable(lab, date, slot))
                 .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(Math.max(page - 1, 0), pageSize);
+        int total = filtered.size();
+        int fromIndex = (int) pageable.getOffset();
+        int toIndex = Math.min(fromIndex + pageable.getPageSize(), total);
+        List<Lab> pageContent = fromIndex >= total ? new ArrayList<Lab>() : filtered.subList(fromIndex, toIndex);
+        return new PageImpl<Lab>(pageContent, pageable, total);
     }
 
     public Lab getDetail(Long id) {

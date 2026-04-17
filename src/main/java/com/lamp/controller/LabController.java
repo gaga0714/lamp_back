@@ -37,15 +37,20 @@ public class LabController {
                                             @RequestParam(required = false) Integer minCapacity,
                                             @RequestParam(defaultValue = "false") boolean onlyAvailable,
                                             @RequestParam(required = false) String location,
-                                            @RequestParam(required = false) String equipment) {
+                                            @RequestParam(required = false) String equipment,
+                                            @RequestParam(defaultValue = "1") int page,
+                                            @RequestParam(defaultValue = "8") int pageSize) {
         String finalName = (name != null && !name.trim().isEmpty()) ? name : keyword;
         LocalDate bookingDate = (date != null && !date.isEmpty()) ? LocalDate.parse(date) : null;
-        List<Lab> list = labService.listLabs(finalName, location, equipment, minCapacity, onlyAvailable, bookingDate, slot);
-        List<Map<String, Object>> items = list.stream()
+        Page<Lab> pg = labService.listLabs(finalName, location, equipment, minCapacity, onlyAvailable, bookingDate, slot, page, pageSize);
+        List<Map<String, Object>> items = pg.getContent().stream()
                 .map(lab -> labToMap(lab, bookingDate, slot))
                 .collect(Collectors.toList());
         Map<String, Object> data = new HashMap<>();
         data.put("list", items);
+        data.put("total", pg.getTotalElements());
+        data.put("page", page);
+        data.put("pageSize", pageSize);
         return Result.ok(data);
     }
 
