@@ -26,11 +26,13 @@ public class LabBooking {
     private String slot;
     @Column(columnDefinition = "text")
     private String purpose;
-    /** pending-待审批 approved-已通过 rejected-已拒绝 used-已使用 cancelled-已取消 */
+    /** pending-待审批 approved-已通过 checked_in-已签到 completed-已完成 no_show-爽约 rejected-已拒绝 cancelled-已取消 */
     @Column(nullable = false, length = 20)
     private String status = "pending";
     @Column(columnDefinition = "text")
     private String approveRemark;
+    private LocalDateTime checkInTime;
+    private LocalDateTime checkOutTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 

@@ -24,6 +24,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final CourseService courseService;
+    private final LabService labService;
 
     public DashboardService(AttendanceRecordRepository attendanceRecordRepository,
                             LeaveApplyRepository leaveApplyRepository,
@@ -31,7 +32,8 @@ public class DashboardService {
                             LabRepository labRepository,
                             UserRepository userRepository,
                             CourseRepository courseRepository,
-                            CourseService courseService) {
+                            CourseService courseService,
+                            LabService labService) {
         this.attendanceRecordRepository = attendanceRecordRepository;
         this.leaveApplyRepository = leaveApplyRepository;
         this.labBookingRepository = labBookingRepository;
@@ -39,6 +41,7 @@ public class DashboardService {
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.courseService = courseService;
+        this.labService = labService;
     }
 
     public Map<String, Object> getStats(Long userId, String role) {
@@ -95,12 +98,15 @@ public class DashboardService {
     }
 
     private Map<String, Object> buildAdminStats(Map<String, Object> data) {
+        Map<String, Object> usageStats = labService.getUsageStats(LocalDate.now().withDayOfMonth(1), LocalDate.now(), null, 1, 10);
+        Map<String, Object> overview = usageStats.get("overview") instanceof Map
+                ? (Map<String, Object>) usageStats.get("overview") : new HashMap<String, Object>();
         data.put("card1Label", "今日课程考勤");
         data.put("card1Value", courseService.countAdminTodayCourseAttendances());
-        data.put("card2Label", "待审批预约");
-        data.put("card2Value", labBookingRepository.countByStatus("pending"));
-        data.put("card3Label", "课程总数");
-        data.put("card3Value", courseRepository.count());
+        data.put("card2Label", "本月实验室真实使用率");
+        data.put("card2Value", String.valueOf(overview.get("usageRate") == null ? 0 : overview.get("usageRate")) + "%");
+        data.put("card3Label", "待审批预约");
+        data.put("card3Value", labBookingRepository.countByStatus("pending"));
         data.put("card4Label", "用户总数");
         data.put("card4Value", userRepository.count());
         return data;

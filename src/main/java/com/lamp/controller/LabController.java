@@ -100,6 +100,20 @@ public class LabController {
         return Result.ok(data);
     }
 
+    @PutMapping("/booking/{id}/check-in")
+    public Result<Map<String, Object>> checkInBooking(@PathVariable Long id) {
+        Long userId = requireBookingUser();
+        LabBooking booking = labService.checkInBooking(id, userId);
+        return Result.ok(bookingToMap(booking, true, userId));
+    }
+
+    @PutMapping("/booking/{id}/check-out")
+    public Result<Map<String, Object>> checkOutBooking(@PathVariable Long id) {
+        Long userId = requireBookingUser();
+        LabBooking booking = labService.checkOutBooking(id, userId);
+        return Result.ok(bookingToMap(booking, true, userId));
+    }
+
     @PutMapping("/booking/{id}/cancel")
     public Result<Void> cancelBooking(@PathVariable Long id) {
         Long userId = requireBookingUser();
@@ -127,6 +141,18 @@ public class LabController {
         String remark = body.get("remark") != null ? body.get("remark").toString() : "";
         LabBooking booking = labService.approveBooking(id, approved, remark);
         return Result.ok(bookingToMap(booking, false));
+    }
+
+    @GetMapping("/usage/stats")
+    public Result<Map<String, Object>> usageStats(@RequestParam(required = false) String startDate,
+                                                  @RequestParam(required = false) String endDate,
+                                                  @RequestParam(required = false) Long labId,
+                                                  @RequestParam(defaultValue = "1") int page,
+                                                  @RequestParam(defaultValue = "10") int pageSize) {
+        requireAdmin();
+        LocalDate start = startDate != null && !startDate.isEmpty() ? LocalDate.parse(startDate) : null;
+        LocalDate end = endDate != null && !endDate.isEmpty() ? LocalDate.parse(endDate) : null;
+        return Result.ok(labService.getUsageStats(start, end, labId, page, pageSize));
     }
 
     @GetMapping("/manage/list")
@@ -190,12 +216,19 @@ public class LabController {
     private static final Map<String, String> BOOKING_STATUS_MAP = new HashMap<String, String>() {{
         put("pending", "待审批");
         put("approved", "已通过");
+        put("checked_in", "使用中");
+        put("completed", "已完成");
+        put("no_show", "已爽约");
+        put("used", "已完成");
         put("rejected", "已拒绝");
-        put("used", "已使用");
         put("cancelled", "已取消");
     }};
 
     private Map<String, Object> bookingToMap(LabBooking b, boolean my) {
+        return bookingToMap(b, my, my ? UserContext.getUserId() : null);
+    }
+
+    private Map<String, Object> bookingToMap(LabBooking b, boolean my, Long currentUserId) {
         Map<String, Object> m = new HashMap<>();
         m.put("id", b.getId());
         m.put("labId", b.getLabId());
@@ -207,7 +240,13 @@ public class LabController {
         m.put("date", b.getDate() != null ? b.getDate().toString() : null);
         m.put("slot", b.getSlot());
         m.put("purpose", b.getPurpose());
+        m.put("rawStatus", b.getStatus());
         m.put("status", BOOKING_STATUS_MAP.getOrDefault(b.getStatus(), b.getStatus()));
+        m.put("checkInTime", b.getCheckInTime() != null ? b.getCheckInTime().toString().replace("T", " ") : null);
+        m.put("checkOutTime", b.getCheckOutTime() != null ? b.getCheckOutTime().toString().replace("T", " ") : null);
+        m.put("canCheckIn", my && labService.canCheckIn(b, currentUserId));
+        m.put("canCheckOut", my && labService.canCheckOut(b, currentUserId));
+        m.put("actionHint", my ? labService.getBookingActionHint(b, currentUserId) : "");
         if (!my) {
             User user = userService.getById(b.getUserId());
             m.put("userName", user != null ? user.getName() : "");

@@ -1,4 +1,5 @@
 com\lamp\service\CourseService$1.class
+com\lamp\service\LabService$UsageCounter.class
 com\lamp\controller\DashboardController.class
 com\lamp\repository\CourseStudentRepository.class
 com\lamp\controller\CourseController.class
@@ -8,6 +9,7 @@ com\lamp\service\CourseService.class
 com\lamp\service\DashboardService.class
 com\lamp\service\CourseService$4.class
 com\lamp\entity\CourseStudent.class
+com\lamp\service\LabService$1.class
 com\lamp\entity\CourseAttendance.class
 com\lamp\service\CourseService$3.class
 com\lamp\repository\CourseAttendanceRepository.class

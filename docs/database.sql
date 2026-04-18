@@ -96,7 +96,8 @@ CREATE TABLE IF NOT EXISTS lab (
 -- ------------------------------------------------------------
 -- 5. 实验室预约表 lab_booking
 -- 时段示例：08:00-10:00, 10:00-12:00, 14:00-16:00, 16:00-18:00
--- 状态：pending-待审批, approved-已通过, rejected-已拒绝, used-已使用, cancelled-已取消
+-- 状态：pending-待审批, approved-已通过, checked_in-已签到, completed-已完成,
+--       no_show-已爽约, rejected-已拒绝, cancelled-已取消
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS lab_booking (
   id              BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
@@ -105,13 +106,17 @@ CREATE TABLE IF NOT EXISTS lab_booking (
   date             DATE        NOT NULL COMMENT '预约日期',
   slot             VARCHAR(32) NOT NULL COMMENT '时段，如 08:00-10:00',
   purpose          TEXT        DEFAULT NULL COMMENT '用途/人数说明',
-  status           VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT '状态：pending/approved/rejected/used/cancelled',
+  status           VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT '状态：pending/approved/checked_in/completed/no_show/rejected/cancelled',
   approve_remark   TEXT        DEFAULT NULL COMMENT '审批备注',
+  check_in_time    DATETIME    DEFAULT NULL COMMENT '实验室签到时间',
+  check_out_time   DATETIME    DEFAULT NULL COMMENT '实验室签退时间',
   create_time      DATETIME    DEFAULT NULL COMMENT '创建时间',
   update_time      DATETIME    DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (id),
   KEY idx_lab_date_slot (lab_id, date, slot),
+  KEY idx_lab_date_status (lab_id, date, status),
   KEY idx_user_id (user_id),
+  KEY idx_status_date (status, date),
   KEY idx_status (status),
   KEY idx_date (date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='实验室预约表';
