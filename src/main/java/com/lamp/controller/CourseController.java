@@ -69,7 +69,7 @@ public class CourseController {
 
     @GetMapping("/{id}/students")
     public Result<Map<String, Object>> students(@PathVariable Long id, @RequestParam(required = false) String courseDate) {
-        requireRole("teacher", "admin");
+        requireRole("teacher");
         return Result.ok(courseService.getCourseStudents(id, parseDate(courseDate)));
     }
 
@@ -77,8 +77,8 @@ public class CourseController {
     public Result<Map<String, Object>> manageList(@RequestParam(defaultValue = "1") int page,
                                                   @RequestParam(defaultValue = "10") int pageSize,
                                                   @RequestParam(required = false) String keyword) {
-        requireRole("admin");
-        return Result.ok(courseService.getManageCourseList(keyword, page, pageSize));
+        rejectLabAdminAccess();
+        return Result.ok(new HashMap<String, Object>());
     }
 
     @GetMapping("/attendance/teacher/list")
@@ -95,8 +95,13 @@ public class CourseController {
                                                        @RequestParam(defaultValue = "10") int pageSize,
                                                        @RequestParam(required = false) String keyword,
                                                        @RequestParam(required = false) String date) {
+        rejectLabAdminAccess();
+        return Result.ok(new HashMap<String, Object>());
+    }
+
+    private void rejectLabAdminAccess() {
         requireRole("admin");
-        return Result.ok(courseService.getAdminAttendance(keyword, parseDate(date), page, pageSize));
+        throw new BusinessException(403, "实验室管理员无权限");
     }
 
     private LocalDate parseDate(String value) {

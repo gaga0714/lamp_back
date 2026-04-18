@@ -101,14 +101,14 @@ public class DashboardService {
         Map<String, Object> usageStats = labService.getUsageStats(LocalDate.now().withDayOfMonth(1), LocalDate.now(), null, 1, 10);
         Map<String, Object> overview = usageStats.get("overview") instanceof Map
                 ? (Map<String, Object>) usageStats.get("overview") : new HashMap<String, Object>();
-        data.put("card1Label", "今日课程考勤");
-        data.put("card1Value", courseService.countAdminTodayCourseAttendances());
+        data.put("card1Label", "实验室总数");
+        data.put("card1Value", labRepository.count());
         data.put("card2Label", "本月实验室真实使用率");
         data.put("card2Value", String.valueOf(overview.get("usageRate") == null ? 0 : overview.get("usageRate")) + "%");
         data.put("card3Label", "待审批预约");
         data.put("card3Value", labBookingRepository.countByStatus("pending"));
-        data.put("card4Label", "用户总数");
-        data.put("card4Value", userRepository.count());
+        data.put("card4Label", "今日实验室预约数");
+        data.put("card4Value", labBookingRepository.findByDateBetween(LocalDate.now(), LocalDate.now()).size());
         return data;
     }
 }
