@@ -43,56 +43,24 @@ public class AdminUserController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role) {
         requireAdmin();
-        Pageable p = PageRequest.of(page - 1, pageSize);
-        Page<User> pg = userRepository.search(keyword, role, p);
-        List<Map<String, Object>> list = pg.getContent().stream()
-                .map(UserVO::from)
-                .map(UserVO::toMap)
-                .collect(Collectors.toList());
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
-        data.put("total", pg.getTotalElements());
-        return Result.ok(data);
+        throw new BusinessException(403, "实验室管理员无权限");
     }
 
     @PostMapping
     public Result<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
         requireAdmin();
-        String username = (String) body.get("username");
-        String name = (String) body.get("name");
-        String password = body.get("password") != null ? body.get("password").toString() : "123456";
-        String role = (String) body.get("role");
-        String phone = body.get("phone") != null ? body.get("phone").toString() : null;
-        String email = body.get("email") != null ? body.get("email").toString() : null;
-        if (username == null || name == null || role == null) {
-            throw new BusinessException("用户名、姓名、角色不能为空");
-        }
-        User user = userService.register(username, name, password, role);
-        return Result.ok(UserVO.from(user).toMap());
+        throw new BusinessException(403, "实验室管理员无权限");
     }
 
     @PutMapping
     public Result<Map<String, Object>> update(@RequestBody Map<String, Object> body) {
         requireAdmin();
-        Long id = body.get("id") instanceof Number ? ((Number) body.get("id")).longValue() : null;
-        if (id == null) throw new BusinessException("id不能为空");
-        User user = userService.getById(id);
-        if (body.get("name") != null) user.setName(body.get("name").toString());
-        if (body.get("phone") != null) user.setPhone(body.get("phone").toString());
-        if (body.get("email") != null) user.setEmail(body.get("email").toString());
-        if (body.get("role") != null) user.setRole(body.get("role").toString());
-        if (body.get("status") != null) user.setStatus(((Number) body.get("status")).intValue());
-        user = userRepository.save(user);
-        return Result.ok(UserVO.from(user).toMap());
+        throw new BusinessException(403, "实验室管理员无权限");
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         requireAdmin();
-        if (UserContext.getUserId().equals(id)) {
-            throw new BusinessException("不能删除自己");
-        }
-        userRepository.deleteById(id);
-        return Result.ok();
+        throw new BusinessException(403, "实验室管理员无权限");
     }
 }

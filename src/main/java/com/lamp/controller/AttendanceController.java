@@ -99,8 +99,7 @@ public class AttendanceController {
             @RequestParam(required = false) String date,
             @RequestParam(required = false) String keyword) {
         requireAdmin();
-        LocalDate d = date != null && !date.isEmpty() ? LocalDate.parse(date) : null;
-        return Result.ok(courseService.getAdminAttendance(keyword, d, page, pageSize));
+        throw new BusinessException(403, "实验室管理员无权限");
     }
 
     @GetMapping("/leave/pending")
