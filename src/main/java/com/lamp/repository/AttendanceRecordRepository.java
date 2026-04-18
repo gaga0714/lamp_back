@@ -14,6 +14,10 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
 
     Page<AttendanceRecord> findByUserIdAndDateBetweenOrderByDateDesc(Long userId, LocalDate start, LocalDate end, Pageable pageable);
 
+    long countByUserIdAndDateBetween(Long userId, LocalDate start, LocalDate end);
+
+    long countByDate(LocalDate date);
+
     Page<AttendanceRecord> findByDateOrderByIdDesc(LocalDate date, Pageable pageable);
 
     Page<AttendanceRecord> findByDateAndUserIdInOrderByIdDesc(LocalDate date, List<Long> userIds, Pageable pageable);

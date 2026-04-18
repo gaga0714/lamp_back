@@ -3,6 +3,7 @@ package com.lamp.entity;
 import javax.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,6 +22,8 @@ public class LeaveApply {
     private LocalDateTime startTime;
     @Column(nullable = false)
     private LocalDateTime endTime;
+    private Long courseId;
+    private LocalDate courseDate;
     @Column(columnDefinition = "text")
     private String reason;
     /** 待审批 已通过 已驳回 */
