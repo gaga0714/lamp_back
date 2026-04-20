@@ -1,114 +1,217 @@
-# 研究生考勤及实验室预约系统 - 后端
+# 研究生考勤及实验室预约系统后端
 
-基于 Spring Boot 2 + JPA + MySQL 的后端服务，与前端 [lamp_front](../lamp_front) 前后端分离对接。
+基于 `Spring Boot 2.7 + JPA + MySQL` 的后端服务，对接前端项目 [lamp_front](../lamp_front)。
+
+当前代码现状已经收敛为 3 个业务角色：
+- `student`：研究生
+- `teacher`：教师
+- `admin`：实验室管理员
+
+其中 `admin` 已不再承担课程管理、考勤总览、用户管理等系统级职责，只保留实验室相关后台能力。
 
 ## 技术栈
 
-- Java 8 (JDK 1.8)
-- Spring Boot 2.7
+- Java 8
+- Spring Boot 2.7.18
 - Spring Data JPA
-- MySQL 8 / H2（可选）
-- JWT 认证（jjwt 0.11）
+- MySQL 8
+- H2（可选开发库）
+- JWT（`jjwt 0.11.5`）
 - Lombok
 
-## 接口前缀与跨域
+## 当前业务模块
 
-- 上下文路径：`/api`，所有接口形如 `http://localhost:8080/api/auth/login`
-- 前端开发环境通过 Vite 代理将 `/api` 转发到 `http://localhost:8080`，因此前端请求 `baseURL: '/api'` 时实际访问 `http://localhost:8080/api/...`
-- 已配置 CORS，允许前端跨域访问
+### 认证与个人中心
+- 登录、注册
+- 获取当前登录用户
+- 修改密码
+- 更新个人资料
 
-## 响应格式
+### 课程与考勤
+- 学生课表、教师授课表
+- 学生课程签到
+- 学生课程考勤记录
+- 学生课程请假、撤销请假
+- 教师按授课课程审批请假
+- 教师课程考勤管理
 
-统一包装为：
+### 实验室预约
+- 实验室列表、详情、时段查询
+- 学生/教师提交预约
+- 我的预约
+- 预约取消
+- 预约签到、签退
+
+### 实验室管理员后台
+- 预约审批
+- 实验室管理
+- 实验室使用统计
+- 工作台实验室统计卡片
+
+## 角色边界
+
+### `student`
+- 课程签到
+- 课程考勤
+- 课程请假 / 我的请假
+- 实验室预约 / 我的预约
+
+### `teacher`
+- 我的授课
+- 课程考勤管理
+- 请假审批
+- 实验室预约 / 我的预约
+
+### `admin`
+- 实验室列表
+- 预约审批
+- 实验室管理
+- 实验室使用统计
+- 个人资料 / 修改密码
+
+当前 `admin` 无法访问：
+- 课表管理
+- 考勤总览
+- 用户管理
+- 全局课程考勤与课程学生名单查看
+
+## 接口约定
+
+- 服务端口：`8080`
+- 上下文路径：`/api`
+- 完整接口示例：`http://localhost:8080/api/auth/login`
+- 前端开发环境通过 Vite 代理访问 `/api`
+
+统一响应格式：
 
 ```json
 {
   "code": 200,
   "message": "success",
-  "data": { ... }
+  "data": {}
 }
 ```
 
-成功时 `code` 为 200，前端会取 `data` 使用；失败时 `code` 非 200，`message` 为错误信息。
+除以下接口外，其余接口都需要携带 JWT：
+- `POST /api/auth/login`
+- `POST /api/auth/register`
 
-## 认证
+请求头格式：
 
-- 除 `POST /api/auth/login`、`POST /api/auth/register` 外，其余接口需在请求头携带：`Authorization: Bearer <token>`
-- 未登录或 token 无效时返回 401
+```http
+Authorization: Bearer <token>
+```
 
-## 默认管理员
+## 默认账号
 
-首次启动会自动创建管理员账号（若不存在）：
+首次启动时，如果数据库中不存在 `admin`，系统会自动创建：
 
 - 用户名：`admin`
 - 密码：`admin123`
-- 角色：`admin`
+- 角色：`admin`（实验室管理员）
 
 ## 运行方式
 
-### 使用 MySQL
+### 1. 准备数据库
 
-1. **建库建表**：执行项目中的建表脚本（推荐）：
-   ```bash
-   mysql -u root -p < docs/database.sql
-   ```
-   或手动创建数据库后，在 MySQL 客户端中执行 `docs/database.sql` 内的建表语句。  
-   数据库设计说明见 [docs/数据库设计说明.md](docs/数据库设计说明.md)。
+推荐先执行建表与初始化脚本：
 
-   若希望由 JPA 自动建表，可跳过建表脚本，在配置中保留 `createDatabaseIfNotExist=true`，JPA 会按实体创建/更新表。
+```bash
+mysql -u root -p < docs/database.sql
+```
 
-2. 修改 `src/main/resources/application.yml` 中的数据库连接：
+也可以直接依赖 JPA 自动更新表结构，当前配置为：
+
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+```
+
+### 2. 修改数据库连接
+
+编辑 `src/main/resources/application.yml`：
 
 ```yaml
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/lamp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
     username: root
-    password: 你的密码
+    password: 你的数据库密码
 ```
 
-3. 启动项目：
+### 3. 启动项目
 
 ```bash
 mvn spring-boot:run
 ```
 
-服务地址：`http://localhost:8080`，接口基础路径：`http://localhost:8080/api`。
-
-### 使用 H2（无需安装 MySQL）
-
-在 `application.yml` 中注释掉 MySQL 配置，启用 H2 配置（文件中已有注释示例），然后执行：
+或先编译再启动：
 
 ```bash
-mvn spring-boot:run
+mvn clean package
+java -jar target/lamp-back-1.0.0.jar
 ```
 
-## 主要接口一览
+启动后访问：
+- 服务地址：`http://localhost:8080`
+- 接口前缀：`http://localhost:8080/api`
 
-| 模块     | 方法 | 路径 | 说明 |
-|----------|------|------|------|
-| 认证     | POST | /auth/login | 登录 |
-| 认证     | POST | /auth/register | 注册 |
-| 认证     | GET  | /auth/user | 当前用户信息 |
-| 认证     | PUT  | /auth/password | 修改密码 |
-| 用户     | PUT  | /user/profile | 更新个人资料 |
-| 用户管理 | GET  | /admin/users | 用户列表（管理员） |
-| 用户管理 | POST/PUT/DELETE | /admin/users, /admin/users/:id | 增删改用户 |
-| 考勤     | POST | /attendance/check-in | 签到/签退 |
-| 考勤     | GET  | /attendance/records | 我的考勤记录 |
-| 考勤     | GET  | /attendance/manage | 考勤管理列表（教师/管理员） |
-| 请假     | POST | /attendance/leave | 请假申请 |
-| 请假     | GET  | /attendance/leave/list | 我的请假列表 |
-| 请假     | PUT  | /attendance/leave/:id/approve | 审批请假 |
-| 实验室   | GET  | /lab/list | 实验室列表 |
-| 实验室   | GET  | /lab/:id | 实验室详情 |
-| 实验室   | GET  | /lab/:id/slots | 可预约时段 |
-| 预约     | POST | /lab/booking | 提交预约 |
-| 预约     | GET  | /lab/booking/my | 我的预约 |
-| 预约     | PUT  | /lab/booking/:id/cancel | 取消预约 |
-| 预约审批 | GET  | /lab/booking/approve/list | 待审批预约列表 |
-| 预约审批 | PUT  | /lab/booking/:id/approve | 审批预约 |
-| 实验室管理 | GET  | /lab/manage/list | 实验室管理列表 |
-| 实验室管理 | POST/PUT/DELETE | /lab/manage, /lab/manage/:id | 实验室增删改 |
+### 4. 使用 H2（可选）
 
-角色说明：`student` 研究生、`teacher` 教师、`labAdmin` 实验室管理员、`admin` 系统管理员。考勤管理需教师或管理员；预约审批与实验室管理需实验室管理员或系统管理员。
+`application.yml` 中保留了 H2 示例配置。开发时如果不想连接 MySQL，可以注释 MySQL 配置并启用 H2 配置。
+
+## 主要接口
+
+### 认证
+- `POST /auth/login`
+- `POST /auth/register`
+- `GET /auth/user`
+- `PUT /auth/password`
+- `PUT /user/profile`
+
+### 课程与考勤
+- `GET /course/student/schedule`
+- `GET /course/teacher/schedule`
+- `GET /course/student/options`
+- `GET /course/student/leave-options`
+- `GET /course/teacher/options`
+- `GET /course/{id}/students`（仅教师）
+- `GET /course/attendance/teacher/list`（仅教师）
+- `POST /attendance/check-in`（仅学生）
+- `GET /attendance/records`（仅学生）
+
+### 请假
+- `POST /attendance/leave`（仅学生）
+- `GET /attendance/leave/list`（仅学生）
+- `PUT /attendance/leave/{id}/cancel`（仅学生）
+- `GET /attendance/leave/pending`（仅教师）
+- `PUT /attendance/leave/{id}/approve`（仅教师）
+
+### 实验室预约
+- `GET /lab/list`
+- `GET /lab/{id}`
+- `GET /lab/{id}/slots`
+- `POST /lab/booking`（学生、教师）
+- `GET /lab/booking/my`（学生、教师）
+- `PUT /lab/booking/{id}/cancel`（学生、教师）
+- `PUT /lab/booking/{id}/check-in`（学生、教师）
+- `PUT /lab/booking/{id}/check-out`（学生、教师）
+
+### 实验室管理员
+- `GET /lab/booking/approve/list`
+- `PUT /lab/booking/{id}/approve`
+- `GET /lab/usage/stats`
+- `GET /lab/manage/list`
+- `POST /lab/manage`
+- `PUT /lab/manage`
+- `DELETE /lab/manage/{id}`
+- `GET /dashboard/stats`
+
+## 相关文档
+
+- [docs/database.sql](docs/database.sql)
+- [docs/数据库设计说明.md](docs/数据库设计说明.md)
+- [docs/请假与考勤权限重构方案.md](docs/请假与考勤权限重构方案.md)
+- [docs/实验室预约签到与真实使用率方案.md](docs/实验室预约签到与真实使用率方案.md)

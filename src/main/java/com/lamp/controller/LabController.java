@@ -70,6 +70,15 @@ public class LabController {
         return Result.ok(slots);
     }
 
+    @GetMapping("/{id}/slot-status")
+    public Result<Map<String, Object>> slotStatus(@PathVariable Long id, @RequestParam(required = false) String date) {
+        LocalDate targetDate = date != null && !date.isEmpty() ? LocalDate.parse(date) : LocalDate.now();
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("date", targetDate.toString());
+        data.put("list", labService.getSlotStatus(id, targetDate));
+        return Result.ok(data);
+    }
+
     @PostMapping("/booking")
     public Result<Map<String, Object>> createBooking(@RequestBody Map<String, Object> body) {
         Long labId = body.get("labId") instanceof Number ? ((Number) body.get("labId")).longValue() : null;

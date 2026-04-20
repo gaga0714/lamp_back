@@ -13,7 +13,7 @@ USE lamp;
 
 -- ------------------------------------------------------------
 -- 1. 用户表 sys_user
--- 角色：student-研究生, teacher-教师, admin-系统管理员
+-- 角色：student-研究生, teacher-教师, admin-实验室管理员
 -- 状态：1-正常, 0-禁用
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sys_user (
@@ -212,5 +212,5 @@ ON DUPLICATE KEY UPDATE status = VALUES(status), check_in_time = VALUES(check_in
 -- 建议通过应用启动时 CommandLineRunner 创建，此处仅作参考
 -- 若使用 BCrypt，密码 admin123 的密文示例（需由应用生成后替换）：
 -- INSERT INTO sys_user (username, password, name, role, status, create_time, update_time)
--- VALUES ('admin', '$2a$10$...', '系统管理员', 'admin', 1, NOW(), NOW());
+-- VALUES ('admin', '$2a$10$...', '实验室管理员', 'admin', 1, NOW(), NOW());
 -- ------------------------------------------------------------
