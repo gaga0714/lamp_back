@@ -83,6 +83,38 @@ public class LabService {
         return SLOTS;
     }
 
+    public List<Map<String, Object>> getSlotStatus(Long labId, LocalDate date) {
+        Lab lab = getDetail(labId);
+        LocalDate targetDate = date == null ? LocalDate.now() : date;
+        List<LabBooking> bookings = labBookingRepository.findByLabIdAndDateBetween(labId, targetDate, targetDate);
+        refreshExpiredBookings(bookings);
+
+        Map<String, LabBooking> bookingBySlot = new HashMap<String, LabBooking>();
+        for (LabBooking booking : bookings) {
+            if (SLOT_BLOCKING_STATUSES.contains(booking.getStatus())) {
+                bookingBySlot.put(booking.getSlot(), booking);
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (String slot : SLOTS) {
+            Map<String, Object> item = new HashMap<String, Object>();
+            LabBooking booking = bookingBySlot.get(slot);
+            boolean maintenance = !"available".equals(lab.getStatus());
+            boolean expired = isSlotExpiredForBooking(targetDate, slot);
+            boolean available = !maintenance && !expired && booking == null;
+            item.put("slot", slot);
+            item.put("available", available);
+            item.put("status", maintenance ? "maintenance" : (expired ? "expired" : (available ? "available" : "occupied")));
+            item.put("statusText", maintenance ? "维护中" : (expired ? "已过预约时间" : (available ? "可预约" : "已占用")));
+            if (booking != null) {
+                item.put("bookingStatus", booking.getStatus());
+            }
+            result.add(item);
+        }
+        return result;
+    }
+
     public boolean isSlotAvailable(Long labId, LocalDate date, String slot) {
         if (date == null || slot == null || slot.trim().isEmpty()) {
             return false;
@@ -96,6 +128,15 @@ public class LabService {
         Lab lab = labRepository.findById(labId).orElseThrow(() -> new BusinessException("实验室不存在"));
         if (!"available".equals(lab.getStatus())) {
             throw new BusinessException("该实验室暂不可预约");
+        }
+        if (date == null) {
+            throw new BusinessException("请选择预约日期");
+        }
+        if (date.isBefore(LocalDate.now())) {
+            throw new BusinessException("不能预约今天之前的日期");
+        }
+        if (isSlotExpiredForBooking(date, slot)) {
+            throw new BusinessException("当天当前时间之前的时段不能预约");
         }
         boolean occupied = labBookingRepository.existsByLabIdAndDateAndSlotAndStatusIn(
                 labId, date, slot, SLOT_BLOCKING_STATUSES);
@@ -411,8 +452,22 @@ public class LabService {
         if (date == null || slot == null || slot.trim().isEmpty()) {
             return true;
         }
+        if (isSlotExpiredForBooking(date, slot)) {
+            return false;
+        }
         return !labBookingRepository.existsByLabIdAndDateAndSlotAndStatusIn(
                 lab.getId(), date, slot, SLOT_BLOCKING_STATUSES);
+    }
+
+    private boolean isSlotExpiredForBooking(LocalDate date, String slot) {
+        if (date == null || slot == null || slot.trim().isEmpty()) {
+            return false;
+        }
+        if (!LocalDate.now().equals(date)) {
+            return false;
+        }
+        LocalDateTime slotStart = LocalDateTime.of(date, LocalTime.parse(slot.split("-")[0]));
+        return !LocalDateTime.now().isBefore(slotStart);
     }
 
     public void refreshExpiredBookings(List<LabBooking> bookings) {
