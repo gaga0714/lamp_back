@@ -209,9 +209,3 @@ java -jar target/lamp-back-1.0.0.jar
 - `DELETE /lab/manage/{id}`
 - `GET /dashboard/stats`
 
-## 相关文档
-
-- [docs/database.sql](docs/database.sql)
-- [docs/数据库设计说明.md](docs/数据库设计说明.md)
-- [docs/请假与考勤权限重构方案.md](docs/请假与考勤权限重构方案.md)
-- [docs/实验室预约签到与真实使用率方案.md](docs/实验室预约签到与真实使用率方案.md)
