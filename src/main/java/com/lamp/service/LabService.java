@@ -438,6 +438,32 @@ public class LabService {
         labRepository.deleteById(id);
     }
 
+    public Map<String, Object> getFilterOptions() {
+        List<String> names = labRepository.findDistinctNames();
+        List<String> locations = labRepository.findDistinctLocations().stream()
+                .map(loc -> loc.replaceAll("\\d+[A-Za-z]*$", ""))
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        List<String> equipmentKeywords = labRepository.findAll().stream()
+                .map(Lab::getEquipmentInfo)
+                .filter(info -> info != null && !info.trim().isEmpty())
+                .flatMap(info -> Arrays.stream(info.split("[,，、]")))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("names", names);
+        result.put("locations", locations);
+        result.put("equipmentKeywords", equipmentKeywords);
+        result.put("slots", SLOTS);
+        return result;
+    }
+
     private boolean isTextMatch(String source, String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return true;

@@ -152,6 +152,20 @@ public class CourseService {
     public Map<String, Object> checkIn(Long studentId, Long courseId, LocalDate courseDate) {
         Course course = getCourse(courseId);
         validateStudentCourse(studentId, course, courseDate);
+
+        // 校验签到时间窗口：课程开始前15分钟到课程结束
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime courseStart = LocalDateTime.of(courseDate, course.getStartTime());
+        LocalDateTime courseEnd = LocalDateTime.of(courseDate, course.getEndTime());
+        LocalDateTime checkInWindowStart = courseStart.minusMinutes(15);
+
+        if (now.isBefore(checkInWindowStart)) {
+            throw new BusinessException("签到时间未到，请在课程开始前15分钟内签到");
+        }
+        if (now.isAfter(courseEnd)) {
+            throw new BusinessException("签到时间已过，该课程已结束");
+        }
+
         Optional<CourseAttendance> existing = courseAttendanceRepository
                 .findByCourseIdAndStudentIdAndCourseDate(courseId, studentId, courseDate);
         if (existing.isPresent() && !"待签到".equals(existing.get().getStatus())) {
@@ -161,9 +175,9 @@ public class CourseService {
         attendance.setCourseId(courseId);
         attendance.setStudentId(studentId);
         attendance.setCourseDate(courseDate);
-        attendance.setCheckInTime(LocalDateTime.now());
+        attendance.setCheckInTime(now);
         attendance.setRemark(null);
-        attendance.setStatus(LocalDateTime.now().toLocalTime().isAfter(course.getStartTime()) ? "迟到" : "已签到");
+        attendance.setStatus(now.toLocalTime().isAfter(course.getStartTime()) ? "迟到" : "已签到");
         courseAttendanceRepository.save(attendance);
 
         Map<String, Object> result = new HashMap<String, Object>();

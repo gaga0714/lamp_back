@@ -29,6 +29,11 @@ public class LabController {
         this.userService = userService;
     }
 
+    @GetMapping("/options/filters")
+    public Result<Map<String, Object>> filterOptions() {
+        return Result.ok(labService.getFilterOptions());
+    }
+
     @GetMapping("/list")
     public Result<Map<String, Object>> list(@RequestParam(required = false) String keyword,
                                             @RequestParam(required = false) String name,
